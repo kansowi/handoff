@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import fastapi, pydantic, litellm, uvicorn; print\\('deps OK', fastapi.__version__, pydantic.__version__\\)\")",
+      "Bash(python3 -m pytest tests/test_analyzer.py -q)",
+      "Bash(python3 -m pytest tests/test_verification.py tests/test_analyzer.py -q)",
+      "Bash(git rm *)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_take_screenshot",
+      "Bash(curl -s http://127.0.0.1:8010/health)",
+      "Bash(curl -s -I http://127.0.0.1:8010/static/css/base.css)",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_resize",
+      "Bash(env -u LITELLM_API_KEY -u ANTHROPIC_API_KEY -u OPENAI_API_KEY python3 -m pytest tests/test_analyzer.py tests/test_verification.py -q)",
+      "Bash(env -u LITELLM_API_KEY -u ANTHROPIC_API_KEY -u OPENAI_API_KEY python3 -m pytest -q)",
+      "Bash(env -u LITELLM_API_KEY -u ANTHROPIC_API_KEY -u OPENAI_API_KEY python3 -m pytest tests/test_frontend_playwright.py::test_frontend_deployment_dossier_smoke -q)"
+    ]
+  }
+}

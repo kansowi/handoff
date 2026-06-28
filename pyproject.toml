@@ -1,0 +1,22 @@
+[project]
+name = "autonomy-lens"
+version = "0.1.0"
+description = "Operating brief compiler for AI employee handoffs."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "httpx>=0.27.0",
+    "litellm>=1.89.4",
+    "pydantic>=2.10.0",
+    "uvicorn>=0.32.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0.0",
+    "playwright>=1.48.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

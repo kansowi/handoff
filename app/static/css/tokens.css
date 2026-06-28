@@ -1,0 +1,152 @@
+/* ============================================================================
+   Handoff — Modern Fintech design tokens (Ramp / Mercury)
+   Warm, soft, rounded. Two calibrated themes share the same token names.
+   ========================================================================== */
+
+@font-face {
+  font-family: "Jakarta";
+  src: url("/static/fonts/plus-jakarta-sans-wght.woff2") format("woff2-variations");
+  font-weight: 200 800;
+  font-display: swap;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/static/fonts/jetbrains-mono-wght.woff2") format("woff2-variations");
+  font-weight: 100 800;
+  font-display: swap;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Chakra Petch";
+  src: url("/static/fonts/chakra-petch-600.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+  font-style: normal;
+}
+
+:root {
+  /* ---- Type ---- */
+  --font-display: "Jakarta", "Archivo", system-ui, sans-serif;
+  --font-sans: "Jakarta", "Archivo", system-ui, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-logo: "Chakra Petch", "Jakarta", system-ui, sans-serif;
+
+  /* ---- Radii (soft) ---- */
+  --r-xs: 7px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  /* ---- Spacing ---- */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px;
+  --s6: 24px; --s7: 32px; --s8: 40px; --s9: 56px; --s10: 72px;
+
+  /* ---- Motion ---- */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --t-fast: 130ms; --t-med: 240ms; --t-slow: 520ms;
+}
+
+/* ====================== DARK (soft warm charcoal) ======================= */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --void: #131419;        /* page */
+  --void-2: #0F1015;      /* deeper wash */
+  --panel: #1A1C22;       /* card / surface */
+  --raised: #212430;      /* inset / raised */
+  --raised-2: #282B36;
+  --overlay: #30343f;
+
+  --line: rgba(255, 255, 255, 0.08);
+  --line-soft: rgba(255, 255, 255, 0.05);
+  --line-strong: rgba(255, 255, 255, 0.15);
+
+  --ink: #F4F2EF;
+  --ink-soft: #B9B5AE;
+  --ink-mute: #87827A;
+  --ink-faint: #5b574f;
+
+  --brand: #8B7FF0;
+  --brand-2: #b39bff;
+  --brand-ink: #C2BAFF;
+  --brand-fill: rgba(139, 127, 240, 0.16);
+  --brand-line: rgba(139, 127, 240, 0.42);
+
+  --ai: #3DD68C;
+  --ai-ink: #86ECBA;
+  --ai-fill: rgba(61, 214, 140, 0.15);
+  --ai-line: rgba(61, 214, 140, 0.36);
+
+  --gate: #F5B945;
+  --gate-ink: #FFD589;
+  --gate-fill: rgba(245, 185, 69, 0.15);
+  --gate-line: rgba(245, 185, 69, 0.34);
+
+  --block: #FF6B6B;
+  --block-ink: #FFA0A0;
+  --block-fill: rgba(255, 107, 107, 0.15);
+  --block-line: rgba(255, 107, 107, 0.36);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 14px 36px -18px rgba(0, 0, 0, 0.65);
+  --shadow-float: 0 28px 70px -24px rgba(0, 0, 0, 0.75);
+  --wash:
+    radial-gradient(70% 55% at 12% -8%, rgba(139, 127, 240, 0.1), transparent 60%),
+    radial-gradient(60% 45% at 100% 0%, rgba(61, 214, 140, 0.05), transparent 55%);
+}
+
+/* ====================== LIGHT (warm paper) ============================== */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --void: #FBFAF8;
+  --void-2: #F4F2EC;
+  --panel: #FFFFFF;
+  --raised: #F6F5F1;
+  --raised-2: #EFEDE6;
+  --overlay: #FFFFFF;
+
+  --line: rgba(24, 22, 18, 0.09);
+  --line-soft: rgba(24, 22, 18, 0.06);
+  --line-strong: rgba(24, 22, 18, 0.16);
+
+  --ink: #1A1916;
+  --ink-soft: #57544E;
+  --ink-mute: #8A857C;
+  --ink-faint: #B3AEA3;
+
+  --brand: #6C5CE7;
+  --brand-2: #8a78ff;
+  --brand-ink: #5848C9;
+  --brand-fill: rgba(108, 92, 231, 0.1);
+  --brand-line: rgba(108, 92, 231, 0.3);
+
+  --ai: #16A05B;
+  --ai-ink: #0E7A45;
+  --ai-fill: rgba(22, 160, 91, 0.1);
+  --ai-line: rgba(22, 160, 91, 0.3);
+
+  --gate: #C98400;
+  --gate-ink: #956200;
+  --gate-fill: rgba(201, 132, 0, 0.1);
+  --gate-line: rgba(201, 132, 0, 0.28);
+
+  --block: #E5484D;
+  --block-ink: #C5363B;
+  --block-fill: rgba(229, 72, 77, 0.09);
+  --block-line: rgba(229, 72, 77, 0.28);
+
+  --shadow-sm: 0 1px 2px rgba(24, 22, 18, 0.05);
+  --shadow-card: 0 1px 2px rgba(24, 22, 18, 0.04), 0 14px 30px -16px rgba(24, 22, 18, 0.14);
+  --shadow-float: 0 28px 56px -20px rgba(24, 22, 18, 0.2);
+  --wash:
+    radial-gradient(70% 55% at 12% -8%, rgba(108, 92, 231, 0.07), transparent 60%),
+    radial-gradient(60% 45% at 100% 0%, rgba(22, 160, 91, 0.04), transparent 55%);
+}

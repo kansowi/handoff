@@ -1,0 +1,182 @@
+/* ============================================================================
+   Handoff — base reset, typography, app shell, suite bar (Modern Fintech)
+   ========================================================================== */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: -0.003em;
+  color: var(--ink);
+  background: var(--void);
+  background-image: var(--wash);
+  background-attachment: fixed;
+  overflow-x: hidden;
+  transition: background-color var(--t-med) var(--ease), color var(--t-med) var(--ease);
+}
+
+h1, h2, h3, h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+p { margin: 0; }
+
+button {
+  font-family: inherit;
+  color: inherit; /* critical: <button> does not inherit color by default */
+}
+
+a { color: inherit; text-decoration: none; }
+
+::selection { background: var(--brand-fill); color: var(--ink); }
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
+/* Inline icons scale with surrounding text unless a component overrides them. */
+.ico { width: 1em; height: 1em; flex-shrink: 0; vertical-align: -0.12em; }
+
+.mono,
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+* { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+[hidden] { display: none !important; }
+
+/* ---- App shell ---- */
+.shell { position: relative; min-height: 100vh; display: flex; flex-direction: column; }
+
+.suitebar {
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: var(--s5);
+  padding: 0 var(--s6);
+  height: 62px;
+  background: color-mix(in srgb, var(--void) 78%, transparent);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand { display: flex; align-items: baseline; gap: 9px; cursor: pointer; }
+.brand__name {
+  font-family: var(--font-logo);
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+.brand__by { font-family: var(--font-mono); font-size: 12px; color: var(--ink-mute); letter-spacing: 0.02em; }
+
+.suitenav { display: flex; gap: 2px; margin-left: var(--s4); }
+.suitenav a {
+  padding: 8px 13px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--ink-mute);
+  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.suitenav a:hover { color: var(--ink-soft); background: var(--line-soft); }
+.suitenav a.active { color: var(--ink); background: var(--raised); }
+
+.suitebar__right { margin-left: auto; display: flex; align-items: center; gap: var(--s3); }
+
+.runtime-chip {
+  display: flex; align-items: center; gap: var(--s2);
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+  background: var(--panel);
+}
+.runtime-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ai); }
+.runtime-chip .dot.warn { background: var(--gate); }
+.runtime-chip .rt-db { color: var(--ink-mute); }
+
+.icon-btn {
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--panel);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.icon-btn:hover { color: var(--ink); background: var(--raised); border-color: var(--line-strong); }
+
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--raised); border: 1px solid var(--line-strong);
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 700; color: var(--ink-soft);
+}
+
+/* ---- Main ---- */
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--s8) var(--s6) var(--s10);
+}
+
+/* ---- Reusable ---- */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+
+.fade-up { opacity: 0; transform: translateY(10px); animation: fadeUp var(--t-slow) var(--ease-out) forwards; }
+@keyframes fadeUp { to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+@media (max-width: 720px) {
+  .suitebar { padding: 0 var(--s4); gap: var(--s3); height: 58px; }
+  .suitenav { display: none; }
+  .runtime-chip .rt-db { display: none; }
+  .main { padding: var(--s6) var(--s4) var(--s9); }
+}
