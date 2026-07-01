@@ -22,9 +22,9 @@
   <link rel="preload" href="/static/fonts/plus-jakarta-sans-wght.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/static/fonts/jetbrains-mono-wght.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/static/fonts/chakra-petch-600.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="/static/css/tokens.css?v=4" />
-  <link rel="stylesheet" href="/static/css/base.css?v=4" />
-  <link rel="stylesheet" href="/static/css/components.css?v=4" />
+  <link rel="stylesheet" href="/static/css/tokens.css?v=7" />
+  <link rel="stylesheet" href="/static/css/base.css?v=7" />
+  <link rel="stylesheet" href="/static/css/components.css?v=7" />
 </head>
 <body>
   <div class="shell">
@@ -38,13 +38,12 @@
         <a data-nav="trust" href="#/trust">Trust Center</a>
       </nav>
       <div class="suitebar__right">
-        <div class="runtime-chip" id="runtimeChip" title="Runtime">
+        <button class="runtime-chip" id="runtimeChip" type="button" data-action="model-settings" title="Choose model — bring your own key">
           <span class="dot"></span>
           <span class="rt-engine">connecting…</span>
           <span class="rt-db"></span>
-        </div>
+        </button>
         <button class="icon-btn" id="themeToggle" type="button" aria-label="Toggle theme"></button>
-        <div class="avatar" title="Controller">SW</div>
       </div>
     </header>
 
@@ -52,6 +51,6 @@
   </div>
 
   <div class="toast" id="toast" role="status"></div>
-  <script type="module" src="/static/js/main.js?v=4"></script>
+  <script type="module" src="/static/js/main.js?v=7"></script>
 </body>
 </html>

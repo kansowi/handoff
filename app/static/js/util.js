@@ -87,7 +87,7 @@ export function decisionMeta(decision) {
     case "ready_to_delegate":
       return { word: "Ready to delegate", kind: "ai", kicker: "Deployment verdict" };
     case "delegate_with_gates":
-      return { word: "Delegate with gates", kind: "gate", kicker: "Deployment verdict" };
+      return { word: "Delegate with human gates", kind: "gate", kicker: "Deployment verdict" };
     default:
       return { word: "Do not delegate ungated", kind: "block", kicker: "Deployment verdict" };
   }
@@ -116,7 +116,8 @@ export function engineLabel(blueprint) {
   return "Deterministic engine";
 }
 
+// Provider-agnostic display name: strip the provider prefix, humanize separators.
 export function prettyModel(model) {
-  if (!model) return "Opus";
-  return model.replace(/^.*\//, "").replace(/claude-/i, "Claude ").replace(/-/g, " ");
+  if (!model) return "Deterministic";
+  return model.replace(/^.*\//, "").replace(/[-_]/g, " ").trim() || "Deterministic";
 }

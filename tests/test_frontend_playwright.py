@@ -69,9 +69,19 @@ def test_frontend_deployment_dossier_smoke(live_server) -> None:
             expect(page.locator(".suitenav a.active")).to_have_text("Processes")
             expect(page.locator("body")).not_to_contain_text("AutonomyLens")
 
-            # Roster: three separated process cards compile to a verdict.
-            page.wait_for_selector('.proc-card[data-demo="invoice-exceptions"]')
+            # Roster: three separated process cards compile to a verdict, each badged "Example".
+            page.wait_for_selector('.proc-card[data-demo="expense-reimbursement"]')
             assert page.locator('.proc-card[data-action="open-demo"]').count() == 3
+            assert page.locator('.proc-card[data-action="open-demo"] .tag-example').count() == 3
+            expect(page.locator('.proc-card[data-demo="expense-reimbursement"] .pill')).to_contain_text(
+                "Delegate with human gates"
+            )
+            expect(page.locator('.proc-card[data-demo="vendor-onboarding"] .pill')).to_contain_text(
+                "Do not delegate ungated"
+            )
+            expect(page.locator('.proc-card[data-demo="billing-inquiry-triage"] .pill')).to_contain_text(
+                "Ready to delegate"
+            )
 
             # No invisible text: the card title color must differ from its background.
             title_color, card_bg = page.evaluate(
@@ -95,29 +105,63 @@ def test_frontend_deployment_dossier_smoke(live_server) -> None:
             page.click('.suitenav a[data-nav="ledger"]')
             page.wait_for_selector(".view-head")
             page.click('.suitenav a[data-nav="processes"]')
-            page.wait_for_selector('.proc-card[data-demo="invoice-exceptions"]')
+            page.wait_for_selector('.proc-card[data-demo="expense-reimbursement"]')
 
-            # Open the deployment dossier (deterministic engine, instant).
-            page.click('.proc-card[data-demo="invoice-exceptions"]')
+            # Open the deployment dossier. While the backend is pending, the compile
+            # surface still shows row-level detail instead of bare stage names.
+            page.evaluate(
+                """() => {
+                  const originalFetch = window.fetch.bind(window);
+                  window.__releaseNextAnalyze = null;
+                  window.fetch = (input, init) => {
+                    const url = typeof input === "string" ? input : input.url;
+                    const method = (init && init.method) || "GET";
+                    if (url.includes("/api/analyze") && method === "POST") {
+                      return new Promise((resolve, reject) => {
+                        window.__releaseNextAnalyze = () => originalFetch(input, init).then(resolve, reject);
+                      });
+                    }
+                    return originalFetch(input, init);
+                  };
+                }"""
+            )
+            page.click('.proc-card[data-demo="expense-reimbursement"]')
+            page.wait_for_selector(".compile")
+            expect(page.locator(".cstage__detail").first).to_contain_text("Bounded")
+            expect(page.locator(".cstage__detail").nth(2)).to_contain_text("Evidence quotes")
+            # Honest framing: while the model call is pending the spinner parks on the
+            # neural extraction stage, and the symbolic stages stay unsettled (not faked).
+            page.wait_for_selector('.cstage[data-i="1"].run')
+            assert page.locator(".cstage.run").count() == 1
+            assert page.locator('.cstage[data-i="3"].done, .cstage[data-i="3"].warn').count() == 0
+            page.evaluate("window.__releaseNextAnalyze && window.__releaseNextAnalyze()")
+            # The deterministic compile now parks on an explicit "Open dossier" CTA after
+            # the stages settle (matching the model path), instead of auto-opening.
+            page.wait_for_selector('button[data-action="open-compiled-dossier"]')
+            page.click('button[data-action="open-compiled-dossier"]')
             page.wait_for_selector(".verdict__word")
-            expect(page.locator(".verdict__word")).to_contain_text("Do not delegate ungated")
+            expect(page.locator(".verdict__word")).to_contain_text("Delegate with human gates")
             expect(page.locator(".verdict__chips")).to_contain_text("Grounded")
 
             # Three consolidated sections, each leading with the human-facing one.
             expect(page.locator('.tab[data-tab="plan"]')).to_contain_text("Operating plan")
             expect(page.locator('.tab[data-tab="proof"]')).to_contain_text("Safety proof")
             expect(page.locator('.tab[data-tab="controls"]')).to_contain_text("Controls")
+            expect(page.locator('.tab[data-tab="source"]')).to_contain_text("Source SOP")
+            page.click('.tab[data-tab="source"]')
+            expect(page.locator("#panel-source")).to_contain_text("The Finance analyst receives")
+            page.click('.tab[data-tab="plan"]')
             expect(page.locator("#panel-plan")).to_contain_text("Human decisions")
 
             # Authority map renders lanes with the signal triad.
             page.wait_for_selector(".lane")
-            assert page.locator(".lane").count() == 8
+            assert page.locator(".lane").count() == 7
             expect(page.locator(".lane--ai").first).to_be_visible()
-            expect(page.locator(".lane--block").first).to_be_visible()
+            expect(page.locator(".lane--gate").first).to_be_visible()
 
-            # Inspector shows the bank-detail step with grounded evidence.
-            page.click('.lane:has-text("Confirm changed bank details")')
-            expect(page.locator("#inspector")).to_contain_text("Confirm changed bank details")
+            # Inspector shows the controller approval step with grounded evidence.
+            page.click('.lane:has-text("Controller approves requests above")')
+            expect(page.locator("#inspector")).to_contain_text("Controller approves requests above")
             expect(page.locator("#inspector .evidence").first).to_be_visible()
 
             # Dry-run → Safety proof tab fills with ledger, evals, and the audit chain.
@@ -125,7 +169,7 @@ def test_frontend_deployment_dossier_smoke(live_server) -> None:
             page.wait_for_selector("#proofLedger .ledger__row")
             page.wait_for_function(
                 "() => { const t = document.getElementById('proofLedger').innerText;"
-                " return t.includes('blocked') && t.includes('gate_requested'); }",
+                " return t.includes('gate_requested'); }",
                 timeout=10000,
             )
             expect(page.locator("#proofEvals")).to_contain_text("grounded")
@@ -145,6 +189,167 @@ def test_frontend_deployment_dossier_smoke(live_server) -> None:
             browser.close()
 
 
+def test_ai_compile_trace_waits_for_explicit_open(live_server) -> None:
+    if playwright_api is None:
+        pytest.skip("Playwright package unavailable")
+
+    with playwright_api.sync_playwright() as playwright:
+        try:
+            browser = playwright.chromium.launch(headless=True)
+        except Exception as exc:  # noqa: BLE001 - local browser binaries are optional
+            pytest.skip(f"Playwright browser unavailable: {exc}")
+
+        try:
+            page = browser.new_page(viewport={"width": 1200, "height": 900})
+            expect = playwright_api.expect
+            page.goto(live_server, wait_until="networkidle")
+
+            trace = [
+                {
+                    "name": "Perceive source document",
+                    "layer": "neural",
+                    "status": "complete",
+                    "detail": "Normalized and bounded 701 characters of source.",
+                },
+                {
+                    "name": "Extract process graph",
+                    "layer": "neural",
+                    "status": "complete",
+                    "detail": "Extracted 7 source-backed steps and 6 decision gates.",
+                },
+                {
+                    "name": "Ground every claim to source",
+                    "layer": "symbolic",
+                    "status": "complete",
+                    "detail": "Grounded 7/7 steps to source evidence spans.",
+                },
+                {
+                    "name": "Reconcile authority boundaries",
+                    "layer": "symbolic",
+                    "status": "warning",
+                    "detail": "Reconciled authority - 5 human gates, 7 steps blocked, 10 unresolved gaps.",
+                },
+                {
+                    "name": "Compile control contracts",
+                    "layer": "symbolic",
+                    "status": "complete",
+                    "detail": "Generated 7 deterministic contracts (7 audit-required).",
+                },
+                {
+                    "name": "Evaluate & score readiness",
+                    "layer": "symbolic",
+                    "status": "warning",
+                    "detail": "Readiness 34/100 - confidence 53% -> Do not delegate ungated.",
+                },
+                {
+                    "name": "Seal signed audit trace",
+                    "layer": "store",
+                    "status": "complete",
+                    "detail": "Sealed blueprint, contracts, and trace into a reproducible record.",
+                },
+            ]
+
+            page.evaluate(
+                """async (trace) => {
+                  const { renderCompile, runCompile } = await import("/static/js/compile.js");
+                  renderCompile("Compiling deployment dossier", "model perception -> deterministic control plane", {
+                    aiMode: true,
+                    charCount: 701,
+                    persist: true,
+                  });
+                  const ctrl = runCompile();
+                  await ctrl.finish(trace);
+                  window.__compileResolved = false;
+                  ctrl.waitForOpenDossier().then(() => {
+                    window.__compileResolved = true;
+                  });
+                }""",
+                trace,
+            )
+
+            expect(page.locator(".compile")).to_be_visible()
+            expect(page.locator(".cstage__detail").nth(5)).to_contain_text("Readiness 34/100")
+            expect(page.locator('button[data-action="open-compiled-dossier"]')).to_be_visible()
+            assert page.evaluate("window.__compileResolved") is False
+
+            page.click('button[data-action="open-compiled-dossier"]')
+            page.wait_for_function("window.__compileResolved === true")
+        finally:
+            browser.close()
+
+
+def test_pending_process_card_shows_while_compile_runs(live_server) -> None:
+    if playwright_api is None:
+        pytest.skip("Playwright package unavailable")
+
+    with playwright_api.sync_playwright() as playwright:
+        try:
+            browser = playwright.chromium.launch(headless=True)
+        except Exception as exc:  # noqa: BLE001 - local browser binaries are optional
+            pytest.skip(f"Playwright browser unavailable: {exc}")
+
+        try:
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            expect = playwright_api.expect
+            page.goto(live_server, wait_until="networkidle")
+            page.wait_for_selector('.proc-card[data-action="open-demo"]')
+
+            page.evaluate(
+                """() => {
+                  const originalFetch = window.fetch.bind(window);
+                  window.__releaseNextAnalyze = null;
+                  window.fetch = (input, init = {}) => {
+                    const url = typeof input === "string" ? input : input.url;
+                    const method = init.method || "GET";
+                    if (url.includes("/api/analyze") && method === "POST") {
+                      return new Promise((resolve, reject) => {
+                        window.__releaseNextAnalyze = () => {
+                          const body = JSON.parse(init.body);
+                          const localInit = {
+                            ...init,
+                            body: JSON.stringify({ ...body, prefer_ai: false, runtime_mode: "local" }),
+                          };
+                          originalFetch(input, localInit).then(resolve, reject);
+                        };
+                      });
+                    }
+                    return originalFetch(input, init);
+                  };
+                }"""
+            )
+
+            title = "Controller AP Review"
+            sop = (
+                "The finance analyst reviews the pending approval queue and records evidence for each exception. "
+                "If payment approval is missing, the analyst routes the case to the controller before release."
+            )
+            page.click('[data-action="onboard"]')
+            page.fill("#onbTitle", title)
+            page.fill("#onbText", sop)
+            page.click('[data-action="submit-onboard"]')
+            page.wait_for_selector(".compile")
+
+            page.click('.suitenav a[data-nav="processes"]')
+            expect(page.locator(".proc-card--pending")).to_contain_text(title)
+            expect(page.locator(".proc-card--pending")).to_contain_text("Compiling")
+            expect(page.locator(".proc-card--pending")).to_contain_text("Open compile")
+            expect(page.locator(".proc-card--pending")).not_to_contain_text("Running")
+            expect(page.locator(".proc-card--pending")).not_to_contain_text("pending")
+
+            page.click(".proc-card--pending")
+            page.wait_for_selector(".compile")
+            expect(page.locator(".compile")).to_contain_text(title)
+            page.click('.suitenav a[data-nav="processes"]')
+            expect(page.locator(".proc-card--pending")).to_contain_text(title)
+
+            page.evaluate("window.__releaseNextAnalyze && window.__releaseNextAnalyze()")
+            page.wait_for_selector(f'.proc-card:has-text("{title}")')
+            expect(page.locator(".proc-card--pending")).to_have_count(0)
+            expect(page.locator(f'.proc-card:has-text("{title}")')).to_contain_text("Open dossier")
+        finally:
+            browser.close()
+
+
 def _assert_layout_integrity(page, width: int, height: int) -> None:
     page.set_viewport_size({"width": width, "height": height})
     page.wait_for_timeout(180)
@@ -154,6 +359,48 @@ def _assert_layout_integrity(page, width: int, height: int) -> None:
     assert page.evaluate(
         "Number(getComputedStyle(document.querySelector('.suitebar')).zIndex || 0) >= 50"
     )
+
+
+def test_model_picker_dropdowns(live_server) -> None:
+    if playwright_api is None:
+        pytest.skip("Playwright package unavailable")
+
+    with playwright_api.sync_playwright() as playwright:
+        try:
+            browser = playwright.chromium.launch(headless=True)
+        except Exception as exc:  # noqa: BLE001 - local browser binaries are optional
+            pytest.skip(f"Playwright browser unavailable: {exc}")
+
+        try:
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            expect = playwright_api.expect
+            page.goto(live_server, wait_until="networkidle")
+
+            # Open the BYO model drawer from the runtime chip → provider + model dropdowns render.
+            page.click("#runtimeChip")
+            page.wait_for_selector("#mdlProvider")
+            page.wait_for_selector("#mdlModelSel option", state="attached")
+
+            # Selecting Anthropic populates claude-* models.
+            page.select_option("#mdlProvider", "anthropic")
+            anthropic_models = page.locator("#mdlModelSel option").all_text_contents()
+            assert any("claude" in m for m in anthropic_models)
+
+            # Selecting OpenAI changes the model list (options update on provider change).
+            page.select_option("#mdlProvider", "openai")
+            openai_models = page.locator("#mdlModelSel option").all_text_contents()
+            assert any("gpt-4o" in m for m in openai_models)
+            assert openai_models != anthropic_models
+
+            # OpenAI-compatible reveals the Base URL field.
+            page.select_option("#mdlProvider", "openai_compatible")
+            assert page.locator("#mdlBaseField").is_visible()
+
+            # Ollama hides the API key field (keyless).
+            page.select_option("#mdlProvider", "ollama")
+            assert page.locator("#mdlKeyField").is_hidden()
+        finally:
+            browser.close()
 
 
 def test_static_css_has_no_unbounded_viewport_type() -> None:

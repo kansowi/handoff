@@ -1,0 +1,28 @@
+# Secrets — never bake into the image
+.env
+.env.*
+!.env.example
+
+# Local state (the app is stateless; no DB ships)
+.data/
+*.sqlite3
+*.sqlite3-*
+
+# VCS / Python / tooling
+.git/
+.gitignore
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Tests and dev-only assets are not needed at runtime
+tests/
+playwright-report/
+test-results/
+.playwright-mcp/
+
+# Docs / pitch material / screenshots
+PITCH_*.md
+*.png

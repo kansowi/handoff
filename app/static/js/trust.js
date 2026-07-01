@@ -21,10 +21,15 @@ export function renderTrust(cards) {
       const s = authoritySplit(c.blueprint);
       const meta = decisionMeta(c.decision);
       const g = c.blueprint.verification ? c.blueprint.verification.groundedness : 1;
+      const action = c.saved ? "open-saved" : "open-demo";
+      const dataAttr = c.saved ? `data-blueprint="${esc(c.saved.blueprint_id)}"` : `data-demo="${esc(c.demo.id)}"`;
+      const title = c.saved ? c.saved.title : c.demo.title;
+      const domain = c.saved ? c.saved.domain : c.demo.domain;
+      const exampleTag = c.saved ? "" : `<span class="tag-example">Example</span>`;
       return `
-        <tr class="click" data-action="open-demo" data-demo="${esc(c.demo.id)}">
-          <td class="strong">${esc(c.demo.title)}</td>
-          <td class="mono">${esc(titleize(c.demo.domain))}</td>
+        <tr class="click" data-action="${action}" ${dataAttr}>
+          <td class="strong">${exampleTag}${esc(title)}</td>
+          <td class="mono">${esc(titleize(domain))}</td>
           <td><span class="pill pill--${meta.kind}"><span class="dot"></span>${esc(meta.word)}</span></td>
           <td class="mono strong">${c.blueprint.readiness_score}</td>
           <td class="mono"><span class="st--pass">${s.ai}</span> · <span class="st--gated">${s.gate}</span> · <span class="st--blocked">${s.block}</span></td>

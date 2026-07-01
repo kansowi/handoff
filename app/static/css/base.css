@@ -125,7 +125,10 @@ a { color: inherit; text-decoration: none; }
   font-size: 11px;
   color: var(--ink-soft);
   background: var(--panel);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
+.runtime-chip:hover { border-color: var(--line-strong); color: var(--ink); }
 .runtime-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ai); }
 .runtime-chip .dot.warn { background: var(--gate); }
 .runtime-chip .rt-db { color: var(--ink-mute); }

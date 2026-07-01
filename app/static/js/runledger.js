@@ -1,4 +1,4 @@
-// Run Ledger — dry-run runs executed this session (in-memory).
+// Run Ledger — every stored dry-run, hydrated from the server on boot (survives reloads).
 
 import { esc, setView } from "./util.js";
 
@@ -7,7 +7,7 @@ const statusKind = (status) => (status === "completed" ? "ai" : status === "gate
 export function renderRunLedger(runs) {
   const rows = runs
     .map((r) => {
-      const clickable = r.demo ? `class="click" data-action="open-demo" data-demo="${esc(r.demo)}"` : "";
+      const clickable = r.blueprint_id ? `class="click" data-action="open-saved" data-blueprint="${esc(r.blueprint_id)}"` : "";
       return `
         <tr ${clickable}>
           <td class="strong mono">${esc(r.runId)}</td>
@@ -24,7 +24,7 @@ export function renderRunLedger(runs) {
     <div class="view-head fade-up">
       <div class="eyebrow">Run Ledger</div>
       <h1>Dry-run ledger</h1>
-      <p>Every dry-run executed this session — deterministic, with no external systems touched. Each run is a signed, replayable record with its own evidence chain.</p>
+      <p>Every dry-run you've run — stored, deterministic, and replayable, with no external systems touched. Each run is a signed record with its own evidence chain. Open one to replay it.</p>
     </div>
     ${
       runs.length

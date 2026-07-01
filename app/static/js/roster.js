@@ -4,7 +4,11 @@ import { esc, setView, domainIcon, titleize, pct, ICON, authoritySplit, decision
 
 export function renderRoster(cards) {
   const stats = portfolio(cards);
-  const items = cards.map((card) => (card.error ? errorCard(card) : procCard(card))).join("");
+  const items = cards.map((card) => {
+    if (card.pending) return pendingCard(card);
+    if (card.error) return errorCard(card);
+    return procCard(card);
+  }).join("");
 
   setView(`
     <div class="roster">
@@ -12,7 +16,7 @@ export function renderRoster(cards) {
         <div class="roster-head__lede">
           <div class="eyebrow">AI Employee Platform</div>
           <h1 class="roster-head__title">Know what an AI employee can <em>safely run</em> — before you delegate.</h1>
-          <p class="roster-head__sub">Handoff reads a finance process and returns a grounded verdict: what an AI employee can own end-to-end, where it must stop for a human, and what's blocking full autonomy.</p>
+          <p class="roster-head__sub">Handoff reads a finance process and returns a grounded verdict - what an AI employee can own end-to-end, where it must stop for a human, and what's blocking full autonomy.</p>
         </div>
       </div>
 
@@ -25,7 +29,6 @@ export function renderRoster(cards) {
       </div>
 
       <div class="roster-grid">
-        ${items}
         <button class="proc-card proc-card--new" data-action="onboard">
           <div class="onboard-inner">
             <div class="onboard-plus">${ICON.plus}</div>
@@ -33,24 +36,54 @@ export function renderRoster(cards) {
             <div class="onboard-sub">Paste a messy SOP — get a deployment verdict in seconds.</div>
           </div>
         </button>
+        ${items}
       </div>
     </div>`);
 }
 
+function pendingCard(card) {
+  const { pending } = card;
+  return `
+    <button class="proc-card proc-card--pending" data-action="open-pending" data-pending-key="${esc(pending.key)}" aria-busy="true" aria-label="Open running compile for ${esc(pending.title)}">
+      <div class="proc-card__top">
+        <div class="proc-card__tile proc-card__tile--pending"><div class="spinner"></div></div>
+        <span class="pill pill--brand"><span class="dot"></span>Compiling</span>
+      </div>
+      <div class="proc-card__head">
+        <div class="proc-card__domain">${esc(titleize(pending.domain))}</div>
+        <h3 class="proc-card__title">${esc(pending.title)}</h3>
+        <div class="proc-card__desc">${esc(pending.model)} extraction → deterministic control plane</div>
+      </div>
+      <div class="proc-card__pending">
+        <div class="proc-card__pending-bar"><span></span></div>
+      </div>
+      <div class="proc-card__foot">
+        <span class="proc-card__runtime">${esc(pending.model)}</span>
+        <span class="proc-card__open">Open compile ${ICON.arrow}</span>
+      </div>
+    </button>`;
+}
+
 function procCard(card) {
-  const { demo, blueprint, decision } = card;
+  const { demo, blueprint, decision, saved } = card;
   const split = authoritySplit(blueprint);
   const meta = decisionMeta(decision);
   const grounded = blueprint.verification ? blueprint.verification.groundedness : 1;
+  const action = saved ? "open-saved" : "open-demo";
+  const dataAttr = saved ? `data-blueprint="${esc(saved.blueprint_id)}"` : `data-demo="${esc(demo.id)}"`;
+  const title = saved ? saved.title : demo.title;
+  const domain = saved ? saved.domain : demo.domain;
+  const label = saved ? "Saved process" : titleize(domain);
+  const exampleTag = saved ? "" : `<span class="tag-example">Example</span>`;
   return `
-    <button class="proc-card proc-card--${meta.kind}" data-action="open-demo" data-demo="${esc(demo.id)}">
+    <button class="proc-card proc-card--${meta.kind}" data-action="${action}" ${dataAttr}>
       <div class="proc-card__top">
-        <div class="proc-card__tile proc-card__tile--${meta.kind}">${domainIcon(demo.domain)}</div>
+        <div class="proc-card__tile proc-card__tile--${meta.kind}">${domainIcon(domain)}</div>
         <span class="pill pill--${meta.kind}"><span class="dot"></span>${esc(meta.word)}</span>
       </div>
       <div class="proc-card__head">
-        <div class="proc-card__domain">${esc(titleize(demo.domain))}</div>
-        <h3 class="proc-card__title">${esc(demo.title)}</h3>
+        <div class="proc-card__domain">${exampleTag}${esc(label)}</div>
+        <h3 class="proc-card__title">${esc(title)}</h3>
         <div class="proc-card__desc">${blueprint.steps.length} steps · ${pct(grounded)} evidence-grounded</div>
       </div>
       <div class="proc-card__auth">
@@ -89,7 +122,7 @@ function pstat(value, label) {
 }
 
 function portfolio(cards) {
-  const ok = cards.filter((c) => !c.error);
+  const ok = cards.filter((c) => !c.error && !c.pending);
   const count = cards.length;
   if (!ok.length) {
     return { count, ready: 0, avgReadiness: 0, blockedSteps: 0, avgGrounded: 1 };

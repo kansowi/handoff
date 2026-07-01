@@ -14,7 +14,7 @@ def _local_blueprint(demo_id: str):
 
 
 def test_verification_is_noop_on_deterministic_blueprint() -> None:
-    blueprint, text = _local_blueprint("invoice-exceptions")
+    blueprint, text = _local_blueprint("expense-reimbursement")
     verified = verify_blueprint(blueprint, text)
 
     assert verified.verification is not None
@@ -27,28 +27,60 @@ def test_verification_is_noop_on_deterministic_blueprint() -> None:
 
 
 def test_local_evidence_is_fully_grounded() -> None:
-    blueprint, text = _local_blueprint("invoice-exceptions")
+    blueprint, text = _local_blueprint("expense-reimbursement")
     verified = verify_blueprint(blueprint, text)
 
     assert verified.verification.groundedness >= 0.9
     assert verified.verification.total_claims > 0
 
 
-def test_hallucinated_quote_is_quarantined() -> None:
-    blueprint, text = _local_blueprint("invoice-exceptions")
-    tampered_step = blueprint.steps[0].model_copy(
+def test_hallucinated_quote_is_escalated_and_capped() -> None:
+    blueprint, text = _local_blueprint("expense-reimbursement")
+    # Start from a confident verdict, then hallucinate one step's evidence.
+    high = blueprint.model_copy(update={"readiness_score": 100})
+    tampered_step = high.steps[0].model_copy(
         update={"evidence": [EvidenceSpan(quote="the CFO personally wires funds to a numbered account at midnight")]}
     )
-    tampered = blueprint.model_copy(update={"steps": [tampered_step, *blueprint.steps[1:]]})
+    tampered = high.model_copy(update={"steps": [tampered_step, *high.steps[1:]]})
 
     verified = verify_blueprint(tampered, text)
 
     assert verified.verification.groundedness < 1.0
     assert any(claim.reason == "quote_not_in_source" for claim in verified.verification.ungrounded_claims)
+    # The guard *acts*: readiness is capped to the fraction that could be verified.
+    assert verified.readiness_score <= round(verified.verification.groundedness * 100)
+    assert verified.readiness_score < 100
+
+
+def test_ungrounded_autonomous_step_is_escalated() -> None:
+    blueprint, text = _local_blueprint("expense-reimbursement")
+    # Pick a benign autonomous step (so only the grounding failure can gate it),
+    # then replace its evidence with a quote that does not occur in the source.
+    target = next(
+        step
+        for step in blueprint.steps
+        if step.autonomy_mode in {"ai_employee", "rules"} and step.reversible and step.risk_level != "high"
+    )
+    tampered_step = target.model_copy(
+        update={"evidence": [EvidenceSpan(quote="zzz nonexistent basis about midnight numbered accounts zzz")]}
+    )
+    tampered = blueprint.model_copy(
+        update={"steps": [tampered_step if step.id == target.id else step for step in blueprint.steps]}
+    )
+
+    verified = verify_blueprint(tampered, text)
+
+    resolved = next(step for step in verified.steps if step.id == target.id)
+    assert resolved.autonomy_mode == "hitl"  # escalated purely because its basis is ungrounded
+    assert verified.verification.escalated_step_count >= 1
+    assert any(
+        divergence.step_id == target.id and "source" in divergence.reason.lower()
+        for divergence in verified.verification.divergences
+    )
 
 
 def test_under_gated_risky_step_is_escalated() -> None:
-    blueprint, text = _local_blueprint("invoice-exceptions")
+    blueprint, text = _local_blueprint("vendor-onboarding")
     target = next(step for step in blueprint.steps if step.risk_level == "high" or not step.reversible)
     downgraded = target.model_copy(update={"autonomy_mode": "ai_employee"})
     tampered = blueprint.model_copy(
@@ -64,7 +96,7 @@ def test_under_gated_risky_step_is_escalated() -> None:
 
 
 def test_verify_does_not_mutate_input() -> None:
-    blueprint, text = _local_blueprint("invoice-exceptions")
+    blueprint, text = _local_blueprint("vendor-onboarding")
     target = next(step for step in blueprint.steps if step.risk_level == "high" or not step.reversible)
     downgraded = target.model_copy(update={"autonomy_mode": "ai_employee"})
     tampered = blueprint.model_copy(

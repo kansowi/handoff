@@ -67,11 +67,8 @@ export function renderDossier(ctx) {
       </div>
     </section>
 
-    <div class="control-bar fade-up" style="display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center;justify-content:space-between">
-      <div class="engine-toggle" role="group" aria-label="Extraction engine">
-        <button data-action="run-engine" data-engine="local" class="${ctx.engine === "local" ? "active" : ""}">Deterministic</button>
-        <button data-action="run-engine" data-engine="auto" class="${ctx.engine === "auto" ? "active" : ""}">${esc(prettyModel(ctx.modelName))} extraction</button>
-      </div>
+    <div class="control-bar fade-up">
+      ${analysisSource(bp)}
       <button class="btn btn--primary" data-action="simulate" id="simBtn">${ICON.play} Run dry-run simulation</button>
     </div>
 
@@ -97,12 +94,14 @@ export function renderDossier(ctx) {
           ${tab("plan", "Operating plan", bp.hitl_gates.length)}
           ${tab("proof", "Safety proof", null)}
           ${tab("controls", "Controls", (ctx.record.contracts || []).length)}
+          ${tab("source", "Source SOP", null)}
         </div>
       </div>
       <div class="panel__body">
-        <div class="tabpanel" data-panel="plan" id="panel-plan">${renderOperatingPlan(bp, packet)}</div>
+        <div class="tabpanel" data-panel="plan" id="panel-plan">${renderOperatingPlan(bp, packet, ctx.record.compile_trace)}</div>
         <div class="tabpanel" data-panel="proof" id="panel-proof" hidden>${renderProofShell()}</div>
         <div class="tabpanel" data-panel="controls" id="panel-controls" hidden>${renderControls(ctx.record.contracts || [], bp)}</div>
+        <div class="tabpanel" data-panel="source" id="panel-source" hidden>${renderSourceSop(ctx)}</div>
       </div>
     </div>
   </div>`;
@@ -124,6 +123,51 @@ function asplit(kind, label, n, total, caption) {
     <div class="asplit__bar"><div class="asplit__fill" data-w="${w}"></div></div>
     <div class="asplit__cap">${esc(caption)}</div>
   </div>`;
+}
+
+function analysisSource(bp) {
+  const model = prettyModel(bp.analyzer_model);
+  let source = {
+    tone: "muted",
+    title: "Deterministic analysis",
+    detail: "local extraction",
+    icon: ICON.shield,
+  };
+
+  if (bp.analyzer === "litellm") {
+    source = {
+      tone: "brand",
+      title: `${model} extraction`,
+      detail: "model-produced process graph",
+      icon: ICON.bot,
+    };
+  } else if (bp.analyzer === "litellm_fallback") {
+    source = {
+      tone: "gate",
+      title: "Deterministic fallback",
+      detail: `${model} unavailable`,
+      icon: ICON.shield,
+    };
+  }
+
+  return `
+    <div class="analysis-source" aria-label="Analysis provenance">
+      <div class="analysis-source__node analysis-source__node--${source.tone}">
+        ${source.icon}
+        <span>
+          <span class="analysis-source__title">${esc(source.title)}</span>
+          <span class="analysis-source__meta">${esc(source.detail)}</span>
+        </span>
+      </div>
+      <span class="analysis-source__arrow" aria-hidden="true">${ICON.arrow}</span>
+      <div class="analysis-source__node analysis-source__node--control">
+        ${ICON.shield}
+        <span>
+          <span class="analysis-source__title">Control-plane verified</span>
+          <span class="analysis-source__meta">authority, grounding, policy gates</span>
+        </span>
+      </div>
+    </div>`;
 }
 
 function lane(step, index, split) {
@@ -163,7 +207,33 @@ function verdictPitch(decision, split) {
 
 /* ---------- operating plan ---------- */
 
-function renderOperatingPlan(bp, packet) {
+function renderCompileTrace(trace) {
+  if (!Array.isArray(trace) || !trace.length) return "";
+  const warnings = trace.filter((step) => step.status === "warning").length;
+  const rows = trace
+    .map(
+      (step) => `
+      <div class="trace-row">
+        <span class="dotc dotc--${step.status === "warning" ? "warn" : "ok"}" title="${esc(step.status)}"></span>
+        <div class="trace-row__main">
+          <div class="trace-row__name">${esc(step.name)}</div>
+          <div class="trace-row__detail">${esc(step.detail)}</div>
+        </div>
+        <span class="cstage__layer">${esc(step.layer || "")}</span>
+      </div>`,
+    )
+    .join("");
+  const hint = warnings
+    ? `${warnings} step${warnings > 1 ? "s" : ""} flagged`
+    : "all steps clean";
+  return `
+    <details class="disclose">
+      <summary>Compile trace <span class="disclose__hint">neural → symbolic → store · ${hint}</span></summary>
+      <div class="trace-rows">${rows}</div>
+    </details>`;
+}
+
+function renderOperatingPlan(bp, packet, trace) {
   const gates = bp.hitl_gates.length
     ? bp.hitl_gates
         .map(
@@ -225,7 +295,21 @@ function renderOperatingPlan(bp, packet) {
       <summary>How this AI employee operates <span class="disclose__hint">perceive → reason → act → verify → escalate</span></summary>
       <div class="loop loop--compact">${loopCols}</div>
     </details>
-    ${limits ? `<details class="disclose"><summary>Hard limits <span class="disclose__hint">what it will never do in v1</span></summary><div class="chips-inline" style="margin-top:var(--s3)">${limits}</div></details>` : ""}`;
+    ${limits ? `<details class="disclose"><summary>Hard limits <span class="disclose__hint">what it will never do in v1</span></summary><div class="chips-inline" style="margin-top:var(--s3)">${limits}</div></details>` : ""}
+    ${renderCompileTrace(trace)}`;
+}
+
+function renderSourceSop(ctx) {
+  const source = ctx.record.source_text || ctx.input?.text || "";
+  return `
+    <p class="tab-summary">The submitted operating context used for extraction, grounding, and deterministic reconciliation.</p>
+    <div class="sop-source">
+      <div class="sop-source__meta">
+        <span>${esc(ctx.input?.title || ctx.record.blueprint.title)}</span>
+        <span>${source.length.toLocaleString()} characters</span>
+      </div>
+      <pre class="sop-source__text">${esc(source || "No source SOP was stored for this dossier.")}</pre>
+    </div>`;
 }
 
 /* ---------- safety proof (filled after dry-run) ---------- */

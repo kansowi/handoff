@@ -27,11 +27,13 @@ async function request(method, url, body) {
   return payload;
 }
 
+// The backend is stateless: it compiles, simulates, and assembles audit exports from the
+// artifacts the client sends. Persistence (saved blueprints + run ledger) lives in store.js.
 export const api = {
   runtime: () => request("GET", "/api/runtime"),
+  models: () => request("GET", "/api/models"),
   demos: () => request("GET", "/api/demos"),
   analyze: (input) => request("POST", "/api/analyze", input),
-  blueprint: (id) => request("GET", `/api/blueprints/${encodeURIComponent(id)}`),
-  simulate: (id) => request("POST", `/api/blueprints/${encodeURIComponent(id)}/simulate`),
-  audit: (runId) => request("GET", `/api/runs/${encodeURIComponent(runId)}/audit`),
+  simulate: (body) => request("POST", "/api/simulate", body),
+  audit: (body) => request("POST", "/api/audit", body),
 };

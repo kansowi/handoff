@@ -30,11 +30,31 @@ class ProcessInput(BaseModel):
     text: str = Field(..., min_length=TEXT_MIN_LENGTH, max_length=TEXT_MAX_LENGTH)
     prefer_ai: bool = Field(
         default=True,
-        description="Attempt LiteLLM extraction when provider credentials are configured.",
+        description="Attempt LiteLLM extraction when a model key is available (request- or server-supplied).",
     )
     runtime_mode: RuntimeMode | None = Field(
         default=None,
         description="Optional explicit runtime mode. Existing prefer_ai behavior is preserved when omitted.",
+    )
+    model: str | None = Field(
+        default=None,
+        max_length=200,
+        description="Optional LiteLLM model id (e.g. 'openai/gpt-4o-mini'). Used only for this request.",
+    )
+    api_key: str | None = Field(
+        default=None,
+        max_length=400,
+        description="Caller-supplied provider API key. Used only for this request; never logged or stored.",
+    )
+    api_base: str | None = Field(
+        default=None,
+        max_length=400,
+        description="Optional provider/gateway base URL paired with api_key. Used only for this request.",
+    )
+    custom_llm_provider: str | None = Field(
+        default=None,
+        max_length=40,
+        description="Optional explicit LiteLLM provider (e.g. 'openai' for an OpenAI-compatible gateway).",
     )
 
     @field_validator("text")
@@ -101,6 +121,7 @@ class ActionStub(BaseModel):
 
 class CompileTraceStep(BaseModel):
     name: str
+    layer: Literal["neural", "symbolic", "store"] = "symbolic"
     status: Literal["complete", "warning"] = "complete"
     detail: str
 
@@ -221,10 +242,21 @@ class AutonomyBlueprint(BaseModel):
 class BlueprintRecord(BaseModel):
     blueprint_id: str
     source_hash: str
+    source_text: str
     blueprint: AutonomyBlueprint
     contracts: list[ControlContract]
     compile_trace: list[CompileTraceStep]
     control_summary: ControlSummary
+    handoff_packet: HandoffPacket
+    created_at: str
+    latest_run_id: str | None = None
+    latest_run_status: RunStatus | None = None
+
+
+class BlueprintSummary(BaseModel):
+    blueprint_id: str
+    source_hash: str
+    blueprint: AutonomyBlueprint
     handoff_packet: HandoffPacket
     created_at: str
     latest_run_id: str | None = None
@@ -309,6 +341,19 @@ class RunRecord(BaseModel):
     contracts: list[ControlContract]
 
 
+class RunSummary(BaseModel):
+    """Lightweight stored-run row for the durable Run Ledger list."""
+
+    run_id: str
+    blueprint_id: str
+    title: str
+    status: RunStatus
+    event_count: int
+    pass_count: int
+    fail_count: int
+    started_at: str
+
+
 class AuditExport(BaseModel):
     run: SimulationRun
     case: SimulationCase
@@ -323,10 +368,29 @@ class AuditExport(BaseModel):
 class RuntimeCapabilities(BaseModel):
     local_analyzer_available: bool
     litellm_configured: bool
-    storage_enabled: bool
     model_name: str
     runtime_mode: RuntimeMode
-    database_path: str
+
+
+class ProviderModel(BaseModel):
+    id: str
+    label: str
+
+
+class Provider(BaseModel):
+    id: str
+    label: str
+    prefix: str = ""
+    keyless: bool = False
+    needs_base: bool = False
+    allow_custom: bool = True
+    key_label: str = "API key"
+    key_placeholder: str = "sk-…"
+    models: list[ProviderModel] = Field(default_factory=list)
+
+
+class ModelCatalog(BaseModel):
+    providers: list[Provider]
 
 
 class DemoProcess(BaseModel):
@@ -341,7 +405,25 @@ class AnalyzeResponse(BaseModel):
     character_count: int
     character_limit: int = TEXT_MAX_LENGTH
     minimum_characters: int = TEXT_MIN_LENGTH
-    blueprint_id: str | None = None
+    source_hash: str
+    contracts: list[ControlContract] = Field(default_factory=list)
     control_summary: ControlSummary | None = None
     compile_trace: list[CompileTraceStep] = Field(default_factory=list)
     handoff_packet: HandoffPacket | None = None
+
+
+class SimulateRequest(BaseModel):
+    """Stateless dry-run input — the client supplies the compiled artifacts to replay."""
+
+    blueprint_id: str = Field(default="bp_session", max_length=64)
+    blueprint: AutonomyBlueprint
+    contracts: list[ControlContract] = Field(default_factory=list)
+    source_hash: str = Field(..., min_length=1, max_length=128)
+
+
+class AuditRequest(BaseModel):
+    """Stateless audit-export input — assembled into a signed AuditExport, no storage."""
+
+    simulation: SimulationResponse
+    blueprint: AutonomyBlueprint
+    runtime_metadata: dict[str, Any] = Field(default_factory=dict)

@@ -50,7 +50,7 @@ export function fillAudit(ctx) {
       )}
       ${node(
         "Runtime attestation",
-        `${esc(runtime_metadata.model_name || "deterministic")} · store ${runtime_metadata.storage_enabled ? "on" : "off"}`,
+        `engine · ${esc(runtime_metadata.model_name || "deterministic")}`,
         `${learning_updates.length} proposed policy-debt fixes captured for the next deployment review.`,
       )}
     </div>
