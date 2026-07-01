@@ -452,11 +452,60 @@
 .sheet__head { display: flex; align-items: center; justify-content: space-between; padding: var(--s5) var(--s6); border-bottom: 1px solid var(--line); }
 .sheet__head h3 { font-size: 18px; font-weight: 700; }
 .sheet__body { padding: var(--s6); display: flex; flex-direction: column; gap: var(--s4); }
-.sheet__row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s4); }
+.sheet__row { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: var(--s4); }
 .field label { display: block; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: var(--s2); }
 .field input, .field textarea, .field select { width: 100%; padding: 11px 13px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--void-2); color: var(--ink); font-family: var(--font-sans); font-size: 13.5px; resize: vertical; }
 .field textarea { min-height: 156px; font-size: 13px; line-height: 1.55; }
 .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-fill); }
+
+/* ---------- Custom select (enhances a native <select>) ---------- */
+.select { position: relative; }
+.select.is-open { z-index: 140; }
+/* Native element kept for value + form semantics, hidden from view. */
+.select__native { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.select__trigger {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
+  min-height: 43px;
+  padding: 11px 13px; border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+  background: var(--void-2); color: var(--ink); font-family: var(--font-sans); font-size: 13.5px;
+  text-align: left; cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.select__trigger:hover { border-color: var(--brand-line); }
+.select__trigger:active { background: var(--raised); }
+.select.is-open .select__trigger, .select__trigger:focus-visible { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-fill); }
+.select__val { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.select__ico { display: inline-flex; color: var(--ink-mute); flex: none; }
+.select__ico svg { width: 18px; height: 18px; }
+.select__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.select__chevron { display: inline-flex; color: var(--ink-mute); flex: none; transition: transform var(--t-med) var(--ease); }
+.select.is-open .select__chevron { transform: rotate(180deg); }
+
+.select__menu {
+  position: absolute; z-index: 130; top: calc(100% + 6px); left: 0; right: 0; margin: 0; padding: var(--s1);
+  list-style: none; background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--r-md);
+  box-shadow: var(--shadow-float); max-height: 264px; overflow-y: auto;
+  animation: selectIn var(--t-fast) var(--ease-out) both;
+}
+@keyframes selectIn { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.select__opt { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 9px 10px; border-radius: var(--r-xs); color: var(--ink-soft); font-size: 13.5px; cursor: pointer; outline: none; }
+.select__opt:hover, .select__opt:focus-visible { background: var(--raised); color: var(--ink); }
+.select__opt.is-selected { color: var(--ink); }
+.select__opt.is-selected .select__ico { color: var(--brand-ink); }
+.select__opt-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.select__check { display: none; color: var(--brand-ink); flex: none; }
+.select__opt.is-selected .select__check { display: inline-flex; }
+
+.select__add { display: flex; align-items: center; gap: 8px; margin-top: var(--s1); padding: 9px 10px; border-top: 1px solid var(--line); border-radius: var(--r-xs); color: var(--brand-ink); font-family: var(--font-mono); font-size: 12px; cursor: pointer; outline: none; }
+.select__add:hover, .select__add:focus-visible { background: var(--brand-fill); }
+.select__add .ico { width: 15px; height: 15px; }
+.select__add.is-editing, .select__add.is-editing:hover { cursor: default; background: transparent; }
+.select__add-input { width: 100%; padding: 6px 8px; border: 1px solid var(--brand); border-radius: var(--r-xs); background: var(--void-2); color: var(--ink); font-family: var(--font-mono); font-size: 12.5px; outline: none; }
+@media (prefers-reduced-motion: reduce) {
+  .select__menu { animation: none; }
+  .select__chevron, .select__trigger { transition: none; }
+}
+
 .sheet__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); padding: var(--s5) var(--s6); border-top: 1px solid var(--line); }
 .sheet__foot .hint { font-family: var(--font-mono); font-size: 11px; color: var(--ink-mute); }
 

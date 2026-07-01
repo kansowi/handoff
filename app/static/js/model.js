@@ -9,7 +9,7 @@ import { esc, ICON, toast, prettyModel } from "./util.js";
 
 const KEY = "handoff:model:v1";
 // Where "run it locally" points. Set this to your repo once it's pushed.
-const REPO_URL = "https://github.com/your-username/handoff";
+const REPO_URL = "https://github.com/kansowi/handoff";
 const CUSTOM = "__custom__";
 
 let catalogCache = null;
@@ -139,7 +139,7 @@ export async function openModelSheet(onChange) {
         </div>
         <div class="model-note">
           ${ICON.shield}
-          <span>Rather not paste a key into a website? Totally fair — Handoff runs locally with
+          <span>Rather not paste a key into a website? Totally fair - Handoff runs locally with
           your own model (or a local Ollama, zero key). <a href="${esc(REPO_URL)}" target="_blank"
           rel="noopener">Clone &amp; run it locally →</a></span>
         </div>

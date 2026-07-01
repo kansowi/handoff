@@ -1,6 +1,9 @@
 // Roster / portfolio view — finance processes under review, each kept separate.
 
 import { esc, setView, domainIcon, titleize, pct, ICON, authoritySplit, decisionMeta } from "./util.js";
+import { enhanceSelect, loadCustomDomains } from "./dropdown.js";
+
+const BASE_DOMAINS = ["accounts_payable", "procurement", "revenue_operations", "finance_ops"];
 
 export function renderRoster(cards) {
   const stats = portfolio(cards);
@@ -15,7 +18,7 @@ export function renderRoster(cards) {
       <div class="roster-head fade-up">
         <div class="roster-head__lede">
           <div class="eyebrow">AI Employee Platform</div>
-          <h1 class="roster-head__title">Know what an AI employee can <em>safely run</em> — before you delegate.</h1>
+          <h1 class="roster-head__title">Know what an AI employee can <em>safely run</em> - before you delegate.</h1>
           <p class="roster-head__sub">Handoff reads a finance process and returns a grounded verdict - what an AI employee can own end-to-end, where it must stop for a human, and what's blocking full autonomy.</p>
         </div>
       </div>
@@ -160,13 +163,12 @@ export function openOnboardSheet() {
       </div>
       <div class="sheet__body">
         <div class="sheet__row">
-          <div class="field"><label>Process name</label><input id="onbTitle" value="Invoice exception resolution" maxlength="120" /></div>
+          <div class="field"><label>Process name</label><input id="onbTitle" value="" maxlength="120" /></div>
           <div class="field"><label>Domain</label>
             <select id="onbDomain">
-              <option value="accounts_payable">accounts_payable</option>
-              <option value="procurement">procurement</option>
-              <option value="revenue_operations">revenue_operations</option>
-              <option value="finance_ops">finance_ops</option>
+              ${[...BASE_DOMAINS, ...loadCustomDomains().filter((d) => !BASE_DOMAINS.includes(d))]
+                .map((d) => `<option value="${esc(d)}">${esc(titleize(d))}</option>`)
+                .join("")}
             </select>
           </div>
         </div>
@@ -180,8 +182,16 @@ export function openOnboardSheet() {
       </div>
     </div>`;
   document.body.appendChild(overlay);
+  enhanceSelect(overlay.querySelector("#onbDomain"), {
+    renderIcon: domainIcon,
+    allowAdd: true,
+    persist: true,
+  });
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) overlay.remove();
   });
-  setTimeout(() => document.getElementById("onbText")?.focus(), 50);
+  setTimeout(() => {
+    if (document.activeElement !== document.body) return;
+    document.getElementById("onbText")?.focus();
+  }, 50);
 }

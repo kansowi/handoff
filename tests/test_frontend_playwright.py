@@ -66,6 +66,7 @@ def test_frontend_deployment_dossier_smoke(live_server) -> None:
 
             page.goto(live_server, wait_until="networkidle")
             expect(page).to_have_title(re.compile("Handoff"))
+            expect(page.locator("html")).to_have_attribute("data-theme", "light")
             expect(page.locator(".suitenav a.active")).to_have_text("Processes")
             expect(page.locator("body")).not_to_contain_text("AutonomyLens")
 
@@ -346,6 +347,55 @@ def test_pending_process_card_shows_while_compile_runs(live_server) -> None:
             page.wait_for_selector(f'.proc-card:has-text("{title}")')
             expect(page.locator(".proc-card--pending")).to_have_count(0)
             expect(page.locator(f'.proc-card:has-text("{title}")')).to_contain_text("Open dossier")
+        finally:
+            browser.close()
+
+
+def test_onboard_domain_dropdown_allows_custom_domain(live_server) -> None:
+    if playwright_api is None:
+        pytest.skip("Playwright package unavailable")
+
+    with playwright_api.sync_playwright() as playwright:
+        try:
+            browser = playwright.chromium.launch(headless=True)
+        except Exception as exc:  # noqa: BLE001 - local browser binaries are optional
+            pytest.skip(f"Playwright browser unavailable: {exc}")
+
+        try:
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            expect = playwright_api.expect
+            page.goto(live_server, wait_until="networkidle")
+            page.evaluate("localStorage.removeItem('handoff.customDomains')")
+
+            page.click('[data-action="onboard"]')
+            expect(page.locator("#onbDomain")).to_have_value("accounts_payable")
+            expect(page.locator(".select__trigger")).to_contain_text("Accounts Payable")
+
+            page.click(".select__trigger")
+            expect(page.locator(".select__menu")).to_be_visible()
+            expect(page.locator(".select__opt")).to_have_count(4)
+            expect(page.locator(".select__opt.is-selected")).to_contain_text("Accounts Payable")
+            expect(page.locator(".select__opt.is-selected .select__check")).to_be_visible()
+
+            page.click(".select__add")
+            page.fill(".select__add-input", "Treasury Ops")
+            page.press(".select__add-input", "Enter")
+            expect(page.locator("#onbDomain")).to_have_value("treasury_ops")
+            expect(page.locator(".select__trigger")).to_contain_text("Treasury Ops")
+            assert "treasury_ops" in page.evaluate("JSON.parse(localStorage.getItem('handoff.customDomains'))")
+
+            page.click(".select__trigger")
+            page.keyboard.press("Escape")
+            expect(page.locator("#sheetOverlay")).to_be_visible()
+            expect(page.locator(".select__menu")).to_be_hidden()
+
+            page.click('[data-action="close-sheet"]')
+            page.click('[data-action="onboard"]')
+            option_values = page.locator("#onbDomain option").evaluate_all("(opts) => opts.map((o) => o.value)")
+            assert "treasury_ops" in option_values
+            page.click(".select__trigger")
+            page.click('.select__opt[data-value="treasury_ops"]')
+            expect(page.locator("#onbDomain")).to_have_value("treasury_ops")
         finally:
             browser.close()
 

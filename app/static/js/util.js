@@ -78,7 +78,7 @@ const DOMAIN_GLYPH = {
     '<svg viewBox="0 0 22 22" fill="none" width="20" height="20"><path d="M4 18h14M7 18v-6M11 18V6M15 18v-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
 };
 const DEFAULT_GLYPH =
-  '<svg viewBox="0 0 22 22" fill="none" width="20" height="20"><rect x="4" y="5" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M4 9h14" stroke="currentColor" stroke-width="1.5"/></svg>';
+  '<svg viewBox="0 0 22 22" fill="none" width="20" height="20"><path d="M4.8 6.2v4.2c0 .5.2 1 .6 1.4l5.3 5.3c.7.7 1.8.7 2.5 0l3.9-3.9c.7-.7.7-1.8 0-2.5L11.8 5.4c-.4-.4-.9-.6-1.4-.6H6.2c-.8 0-1.4.6-1.4 1.4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8.2 8.1h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
 export const domainIcon = (domain) => DOMAIN_GLYPH[domain] || DEFAULT_GLYPH;
 
 // Decision → display metadata.

@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
-  <meta name="theme-color" content="#131419" />
+  <meta name="theme-color" content="#FBFAF8" />
   <title>Handoff — AI Employee Deployment Control Plane</title>
   <meta name="description" content="Handoff compiles a messy finance SOP into a grounded, gated verdict on whether the work can be delegated to an AI employee." />
   <script>
@@ -12,9 +12,7 @@
     (function () {
       try {
         var saved = localStorage.getItem("handoff.theme");
-        var theme = saved === "light" || saved === "dark"
-          ? saved
-          : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        var theme = saved === "light" || saved === "dark" ? saved : "light";
         document.documentElement.setAttribute("data-theme", theme);
       } catch (e) {}
     })();
